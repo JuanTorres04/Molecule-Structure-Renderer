@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Molecular Structures Viewer</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+        }
+        
+        #container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .app-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .app-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            margin-left: 12px;
+        }
+        
+        .app-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #94a3b8;
+        }
+        
+        .selector {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(30, 41, 59, 0.7);
+            color: #f1f5f9;
+            margin-bottom: 15px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .selector:hover {
+            background: rgba(51, 65, 85, 0.7);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        
+        .selector:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+        }
+        
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(30, 41, 59, 0.7);
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            background: rgba(51, 65, 85, 0.7);
+            transform: translateY(-2px);
+        }
+        
+        .btn.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn i {
+            font-size: 16px;
+        }
+        
+        .info-panel {
+            background: rgba(30, 41, 59, 0.7);
+            padding: 18px;
+            border-radius: 12px;
+            margin-top: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .info-title {
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            font-weight: 500;
+            color: #f8fafc;
+            margin-bottom: 12px;
+        }
+        
+        .label {
+            text-shadow: -1px 1px 2px rgba(0, 0, 0, 0.8);
+            margin-left: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 20px 30px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .credit {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 8px 16px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .credit a {
+            color: rgba(59, 130, 246, 0.9);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            z-index: 100;
+            text-align: right;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 8px 16px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="container"></div>
+    <div id="ui-container">
+        <div class="app-header">
+            <div class="app-icon">
+                <i class="fas fa-atom" style="color: white; font-size: 20px;"></i>
+            </div>
+            <h1>Molecular Viewer</h1>
+        </div>
+        
+        <div class="control-group">
+            <label class="control-label">SELECT MOLECULE</label>
+            <select id="molecule-selector" class="selector">
+                <option value="caffeine.pdb">Caffeine</option>
+                <option value="ethanol.pdb">Ethanol</option>
+                <option value="aspirin.pdb">Aspirin</option>
+                <option value="nicotine.pdb">Nicotine</option>
+                <option value="lsd.pdb">LSD</option>
+                <option value="cocaine.pdb">Cocaine</option>
+                <option value="cholesterol.pdb">Cholesterol</option>
+                <option value="lycopene.pdb">Lycopene</option>
+                <option value="glucose.pdb">Glucose</option>
+                <option value="Al2O3.pdb">Aluminium oxide</option>
+                <option value="cubane.pdb">Cubane</option>
+                <option value="cu.pdb">Copper</option>
+                <option value="caf2.pdb">Fluorite</option>
+                <option value="nacl.pdb">Salt</option>
+                <option value="ybco.pdb">YBCO superconductor</option>
+                <option value="buckyball.pdb">Buckyball</option>
+                <option value="graphite.pdb">Graphite</option>
+            </select>
+        </div>
+        
+        <div class="btn-group">
+            <button id="rotate-toggle" class="btn active">
+                <i class="fas fa-pause"></i> Pause
+            </button>
+            <button id="reset-view" class="btn">
+                <i class="fas fa-sync"></i> Reset
+            </button>
+        </div>
+        
+        <div class="info-panel">
+            <div>
+                <div class="info-title">Molecule</div>
+                <div id="molecule-name" class="info-value">Caffeine</div>
+            </div>
+            <div>
+                <div class="info-title">Formula</div>
+                <div id="molecule-formula" class="info-value">C₈H₁₀N₄O₂</div>
+            </div>
+            <div>
+                <div class="info-title">Molecular Weight</div>
+                <div id="molecule-weight" class="info-value">194.19 g/mol</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="loading">
+        <div class="spinner"></div>
+        <span>Loading molecule...</span>
+    </div>
+    
+    <div class="credit">
+        Created by  <a>Juan Torres</a>
+    </div>
+    
+    <div class="controls-hint">
+        Drag to rotate • Scroll to zoom
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.132.2/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+        import { PDBLoader } from 'three/addons/loaders/PDBLoader.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        let camera, scene, renderer, labelRenderer;
+        let controls;
+        let root;
+        let isRotating = true;
+
+        // molecule database
+        const MOLECULE_INFO = {
+            'caffeine.pdb': { name: 'Caffeine', formula: 'C₈H₁₀N₄O₂', weight: '194.19 g/mol' },
+            'ethanol.pdb': { name: 'Ethanol', formula: 'C₂H₅OH', weight: '46.07 g/mol' },
+            'aspirin.pdb': { name: 'Aspirin', formula: 'C₉H₈O₄', weight: '180.16 g/mol' },
+            'nicotine.pdb': { name: 'Nicotine', formula: 'C₁₀H₁₄N₂', weight: '162.23 g/mol' },
+            'lsd.pdb': { name: 'LSD', formula: 'C₂₀H₂₅N₃O', weight: '323.43 g/mol' },
+            'cocaine.pdb': { name: 'Cocaine', formula: 'C₁₇H₂₁NO₄', weight: '303.35 g/mol' },
+            'cholesterol.pdb': { name: 'Cholesterol', formula: 'C₂₇H₄₆O', weight: '386.65 g/mol' },
+            'lycopene.pdb': { name: 'Lycopene', formula: 'C₄₀H₅₆', weight: '536.87 g/mol' },
+            'glucose.pdb': { name: 'Glucose', formula: 'C₆H₁₂O₆', weight: '180.16 g/mol' },
+            'Al2O3.pdb': { name: 'Aluminium Oxide', formula: 'Al₂O₃', weight: '101.96 g/mol' },
+            'cubane.pdb': { name: 'Cubane', formula: 'C₈H₈', weight: '104.15 g/mol' },
+            'cu.pdb': { name: 'Copper', formula: 'Cu', weight: '63.55 g/mol' },
+            'caf2.pdb': { name: 'Fluorite', formula: 'CaF₂', weight: '78.07 g/mol' },
+            'nacl.pdb': { name: 'Sodium Chloride', formula: 'NaCl', weight: '58.44 g/mol' },
+            'ybco.pdb': { name: 'YBCO Superconductor', formula: 'YBa₂Cu₃O₇', weight: '666.19 g/mol' },
+            'buckyball.pdb': { name: 'Buckyball', formula: 'C₆₀', weight: '720.64 g/mol' },
+            'graphite.pdb': { name: 'Graphite', formula: 'C', weight: '12.01 g/mol' }
+        };
+
+        const loader = new PDBLoader();
+        const offset = new THREE.Vector3();
+
+        init();
+
+        function init() {
+            // background scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0f1f);
+            
+            // create camera
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 5000);
+            camera.position.z = 1000;
+            scene.add(camera);
+
+            // improved lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+            scene.add(ambientLight);
+
+            const light1 = new THREE.DirectionalLight(0xffffff, 2);
+            light1.position.set(1, 1, 1);
+            scene.add(light1);
+
+            const light2 = new THREE.DirectionalLight(0xffffff, 1);
+            light2.position.set(-1, -1, 1);
+            scene.add(light2);
+
+            const light3 = new THREE.PointLight(0x4466ff, 1, 1000);
+            light3.position.set(50, 50, 50);
+            scene.add(light3);
+
+            const light4 = new THREE.PointLight(0xff4466, 1, 1000);
+            light4.position.set(-50, -50, -50);
+            scene.add(light4);
+
+            root = new THREE.Group();
+            scene.add(root);
+
+            // create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setAnimationLoop(animate);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // add label renderer
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            labelRenderer.domElement.style.pointerEvents = 'none';
+            document.getElementById('container').appendChild(labelRenderer.domElement);
+
+            // add controls
+            controls = new TrackballControls(camera, renderer.domElement);
+            controls.minDistance = 500;
+            controls.maxDistance = 2000;
+            controls.rotateSpeed = 2.0;
+
+            // load initial molecule
+            loadMolecule('caffeine.pdb');
+
+            // handle window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // UI event listeners
+            document.getElementById('molecule-selector').addEventListener('change', function() {
+                loadMolecule(this.value);
+            });
+            
+            document.getElementById('rotate-toggle').addEventListener('click', function() {
+                isRotating = !isRotating;
+                this.innerHTML = isRotating ? '<i class="fas fa-pause"></i> Pause' : '<i class="fas fa-play"></i> Play';
+                this.classList.toggle('active');
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', function() {
+                controls.reset();
+            });
+            
+            // hide loading indicator after initial load
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+            }, 1500);
+        }
+
+        function loadMolecule(model) {
+            // show loading indicator
+            document.getElementById('loading').style.display = 'flex';
+            
+            // update molecule info
+            const info = MOLECULE_INFO[model];
+            document.getElementById('molecule-name').textContent = info.name;
+            document.getElementById('molecule-formula').textContent = info.formula;
+            document.getElementById('molecule-weight').textContent = info.weight;
+            
+            const url = 'https://threejs.org/examples/models/pdb/' + model;
+
+            // clear previous molecule
+            while (root.children.length > 0) {
+                const object = root.children[0];
+                object.parent.remove(object);
+            }
+
+            loader.load(url, function(pdb) {
+                const geometryAtoms = pdb.geometryAtoms;
+                const geometryBonds = pdb.geometryBonds;
+                const json = pdb.json;
+
+                const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+                const sphereGeometry = new THREE.IcosahedronGeometry(1, 3);
+
+                geometryAtoms.computeBoundingBox();
+                geometryAtoms.boundingBox.getCenter(offset).negate();
+
+                geometryAtoms.translate(offset.x, offset.y, offset.z);
+                geometryBonds.translate(offset.x, offset.y, offset.z);
+
+                let positions = geometryAtoms.getAttribute('position');
+                const colors = geometryAtoms.getAttribute('color');
+
+                const position = new THREE.Vector3();
+                const color = new THREE.Color();
+
+                for (let i = 0; i < positions.count; i++) 
+				
+				{
+                    position.x = positions.getX(i);
+                    position.y = positions.getY(i);
+                    position.z = positions.getZ(i);
+
+                    color.r = colors.getX(i);
+                    color.g = colors.getY(i);
+                    color.b = colors.getZ(i);
+
+                    // reflective material
+                    const material = new THREE.MeshPhongMaterial({
+                        color: color,
+                        specular: 0xffffff,
+                        shininess: 100,
+                        emissive: new THREE.Color(color).multiplyScalar(0.1)
+                    });
+
+                    const object = new THREE.Mesh(sphereGeometry, material);
+                    object.position.copy(position);
+                    object.position.multiplyScalar(75);
+                    object.scale.multiplyScalar(25);
+                    root.add(object);
+
+                    const atom = json.atoms[i];
+
+                    const text = document.createElement('div');
+                    text.className = 'label';
+                    text.style.color = 'rgb(' + atom[3][0] + ',' + atom[3][1] + ',' + atom[3][2] + ')';
+                    text.textContent = atom[4];
+
+                    const label = new CSS2DObject(text);
+                    label.position.copy(object.position);
+                    root.add(label);
+                }
+
+                positions = geometryBonds.getAttribute('position');
+
+                const start = new THREE.Vector3();
+                const end = new THREE.Vector3();
+
+                for (let i = 0; i < positions.count; i += 2) {
+                    start.x = positions.getX(i);
+                    start.y = positions.getY(i);
+                    start.z = positions.getZ(i);
+
+                    end.x = positions.getX(i + 1);
+                    end.y = positions.getY(i + 1);
+                    end.z = positions.getZ(i + 1);
+
+                    start.multiplyScalar(75);
+                    end.multiplyScalar(75);
+
+                    const object = new THREE.Mesh(boxGeometry, new THREE.MeshPhongMaterial({
+                        color: 0xffffff,
+                        specular: 0xffffff,
+                        shininess: 50
+                    }));
+                    object.position.copy(start);
+                    object.position.lerp(end, 0.5);
+                    object.scale.set(5, 5, start.distanceTo(end));
+                    object.lookAt(end);
+                    root.add(object);
+                }
+                
+                // hide loading indicator
+                document.getElementById('loading').style.display = 'none';
+                
+            }, undefined, function(error) {
+                console.error('Error loading molecule:', error);
+                document.getElementById('loading').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error loading molecule';
+            });
+        }
+
+        function onWindowResize() 
+		
+		{
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() 
+		
+		{
+
+            controls.update();
+
+            if (isRotating)
+			
+			{
+                const time = Date.now() * 0.0004;
+                root.rotation.x = time;
+                root.rotation.y = time * 0.7;
+            }
+
+            render();
+        }
+
+        function render() 
+		
+		{
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+    </script>
+</body>
+</html>
